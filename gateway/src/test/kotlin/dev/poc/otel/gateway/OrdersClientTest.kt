@@ -2,12 +2,16 @@ package dev.poc.otel.gateway
 
 import io.micrometer.observation.tck.TestObservationRegistry
 import io.micrometer.observation.tck.TestObservationRegistryAssert.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.web.client.MockRestServiceServer
 import org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo
+import org.springframework.test.web.client.response.MockRestResponseCreators.withStatus
 import org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess
 import org.springframework.web.client.RestClient
+import org.springframework.web.server.ResponseStatusException
 
 /** Shows that a RestClient bound to an ObservationRegistry emits "http.client.requests" observations. */
 class OrdersClientTest {
@@ -35,6 +39,17 @@ class OrdersClientTest {
             .hasLowCardinalityKeyValue("uri", "/orders/{id}?fail={fail}")
             .hasLowCardinalityKeyValue("status", "200")
             .hasBeenStopped()
+        server.verify()
+    }
+
+    @Test
+    fun `get passes a 404 from orders through`() {
+        server.expect(requestTo("http://orders/orders/999?fail=false")).andRespond(withStatus(HttpStatus.NOT_FOUND))
+
+        assertThatThrownBy { client.get(999, fail = false) }
+            .isInstanceOfSatisfying(ResponseStatusException::class.java) {
+                org.assertj.core.api.Assertions.assertThat(it.statusCode).isEqualTo(HttpStatus.NOT_FOUND)
+            }
         server.verify()
     }
 }

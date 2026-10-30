@@ -1,9 +1,11 @@
 package dev.poc.otel.gateway
 
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.HttpStatusCode
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.body
+import org.springframework.web.server.ResponseStatusException
 
 data class CreateOrderRequest(val item: String, val quantity: Int, val userId: String?)
 
@@ -23,7 +25,10 @@ data class Order(
  */
 @Component
 class OrdersClient(builder: RestClient.Builder, @Value("\${orders.base-url}") baseUrl: String) {
-    private val client = builder.baseUrl(baseUrl).build()
+    // Pass orders' 4xx through (e.g. 404); otherwise the gateway would answer 500.
+    private val client = builder.baseUrl(baseUrl)
+        .defaultStatusHandler(HttpStatusCode::is4xxClientError) { _, res -> throw ResponseStatusException(res.statusCode) }
+        .build()
 
     fun create(request: CreateOrderRequest): Order =
         client.post().uri("/orders").body(request).retrieve().body<Order>()!!
