@@ -21,6 +21,15 @@ class UserBaggageFilter(private val tracer: Tracer) : OncePerRequestFilter() {
             chain.doFilter(request, response)
             return
         }
+        // Baggage ends up in logs, spans and downstream headers: only accept well-formed ids
+        if (!USER_ID.matches(userId)) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid X-User-Id")
+            return
+        }
         tracer.createBaggageInScope("user.id", userId).use { chain.doFilter(request, response) }
+    }
+
+    private companion object {
+        val USER_ID = Regex("^[A-Za-z0-9_-]{1,64}$")
     }
 }

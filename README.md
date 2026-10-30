@@ -94,3 +94,4 @@ Open Grafana at http://localhost:3000 (admin/admin) → **Explore**.
 - With OTLP, metric timers are in **milliseconds** (`*_milliseconds_*`), not seconds as with the Prometheus registry.
 - Keep `lowCardinalityKeyValue` for bounded values: these become metric tags. Use `highCardinalityKeyValue` for IDs: these become span attributes only.
 - If logs stop appearing in Loki while traces and metrics still arrive, check the host disk. Loki inside `otel-lgtm` throttles writes once disk usage exceeds 90%. To see the errors, run the container with `ENABLE_LOGS_LOKI=true ENABLE_LOGS_OTELCOL=true`.
+- **Not production-safe:** there is no authentication, and `X-User-Id` is trusted after a format check. Real services take the user from an authenticated principal. Compose ports are bound to `127.0.0.1` and use default credentials.

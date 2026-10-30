@@ -22,7 +22,7 @@ class OrderService(
         val price = pricing.price(item, quantity)
         val order = repository.save(Order(item = item, quantity = quantity, userId = userId, price = price))
         // Custom business metric -> orders_created_total in Prometheus
-        meterRegistry.counter("orders.created", "item", item).increment()
+        meterRegistry.counter("orders.created", "item", itemTag(item)).increment()
         log.info("Created order {} for item={} quantity={} price={}", order.id, item, quantity, price)
         return order
     }

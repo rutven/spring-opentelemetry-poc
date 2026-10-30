@@ -6,6 +6,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.core.PropagationContextElement
+import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ResponseStatusException
 
 data class PlaceOrderRequest(val item: String, val quantity: Int)
 
@@ -42,12 +44,24 @@ class GatewayController(private val orders: OrdersClient) {
      * thread hops; without it the downstream calls would start new, disconnected traces.
      */
     @GetMapping("/summary")
-    suspend fun summary(@RequestParam ids: List<Long>): OrdersSummary =
-        withContext(PropagationContextElement()) {
-            log.info("Building summary for {}", ids)
+    suspend fun summary(@RequestParam ids: List<Long>): OrdersSummary {
+        val uniqueIds = ids.distinct()
+        if (uniqueIds.isEmpty() || uniqueIds.size > MAX_SUMMARY_IDS) {
+            throw ResponseStatusException(HttpStatus.BAD_REQUEST, "ids must contain 1..$MAX_SUMMARY_IDS distinct values")
+        }
+        return withContext(PropagationContextElement()) {
+            log.info("Building summary for {}", uniqueIds)
             val fetched = coroutineScope {
-                ids.map { id -> async(Dispatchers.IO) { orders.get(id, fail = false) } }.map { it.await() }
+                uniqueIds.map { id -> async(summaryDispatcher) { orders.get(id, fail = false) } }.map { it.await() }
             }
             OrdersSummary(fetched, fetched.sumOf { it.price })
         }
+    }
+
+    private companion object {
+        const val MAX_SUMMARY_IDS = 20
+
+        /** Caps concurrent downstream calls per gateway instance. */
+        val summaryDispatcher = Dispatchers.IO.limitedParallelism(5)
+    }
 }

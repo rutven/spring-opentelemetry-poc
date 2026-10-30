@@ -16,7 +16,7 @@ class PricingService(private val observationRegistry: ObservationRegistry) {
     fun price(item: String, quantity: Int): BigDecimal =
         Observation.createNotStarted("orders.pricing", observationRegistry)
             .contextualName("calculate-price")
-            .lowCardinalityKeyValue("item", item) // span attribute + metric tag (keep cardinality low!)
+            .lowCardinalityKeyValue("item", itemTag(item)) // span attribute + metric tag (bounded!)
             .highCardinalityKeyValue("quantity", quantity.toString()) // span attribute only
             .observe<BigDecimal> {
                 Thread.sleep(Random.nextLong(10, 200)) // simulated latency
