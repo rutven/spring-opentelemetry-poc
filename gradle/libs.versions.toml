@@ -1,0 +1,14 @@
+[versions]
+spring-boot = "4.1.2"
+kotlin = "2.3.21"
+otel-instrumentation = "2.28.0-alpha" # must match OTel SDK version managed by Spring Boot (1.62.0)
+datasource-micrometer = "2.3.0"
+
+[libraries]
+otel-logback-appender = { module = "io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0", version.ref = "otel-instrumentation" }
+datasource-micrometer = { module = "net.ttddyy.observation:datasource-micrometer-spring-boot", version.ref = "datasource-micrometer" }
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }

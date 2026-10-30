@@ -1,0 +1,16 @@
+services:
+  lgtm:
+    # OTel Collector + Tempo (traces) + Loki (logs) + Prometheus (metrics) + Grafana UI
+    image: grafana/otel-lgtm:latest
+    ports:
+      - "3000:3000" # Grafana (admin/admin)
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: orders
+      POSTGRES_USER: orders
+      POSTGRES_PASSWORD: orders
+    ports:
+      - "5432:5432"

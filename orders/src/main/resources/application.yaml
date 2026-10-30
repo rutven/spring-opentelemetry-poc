@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: orders
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: jdbc:postgresql://localhost:5432/orders
+    username: orders
+    password: orders
+  sql:
+    init:
+      mode: always
+
+server:
+  port: 8081
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0 # PoC: keep every trace
+    baggage:
+      remote-fields: user.id # propagated over the wire (W3C "baggage" header)
+      correlation:
+        fields: user.id # copied into MDC -> console logs + OTel log attributes
+      tag-fields: user.id # added as a span attribute
+  opentelemetry:
+    resource-attributes:
+      deployment.environment.name: local
+    tracing:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/traces
+    logging:
+      export:
+        otlp:
+          endpoint: http://localhost:4318/v1/logs
+  otlp:
+    metrics:
+      export:
+        url: http://localhost:4318/v1/metrics
+        step: 10s
+  observations:
+    annotations:
+      enabled: true # enables @Observed
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+logging:
+  pattern:
+    correlation: "[%X{traceId:-},%X{spanId:-},user=%X{user.id:-}] "
